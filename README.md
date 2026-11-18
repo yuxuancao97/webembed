@@ -45,6 +45,7 @@ Requires Node 18+ and PowerPoint for Mac (Microsoft 365 / 2019+).
 2. Quit PowerPoint fully (⌘Q) and reopen it the first time after sideloading.
 3. Open **Home → Add-ins** (or **Insert → Add-ins → My Add-ins**), then choose **WebEmbed** under *Developer Add-ins*.
 4. The box appears on the current slide. Pick a tab, paste a URL or HTML, and press **Embed**.
+5. Save the deck (⌘S). PowerPoint doesn't count an embed change as an edit, so closing without saving can drop it.
 
 > **The server must be running when you present.** The add-in page is served from `localhost:3000`. If the server is down, the live embed won't load. PowerPoint falls back to a load error or the last snapshot image. For a deck you'll present elsewhere or share, host `public/` somewhere with HTTPS (see below).
 
