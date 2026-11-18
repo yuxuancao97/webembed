@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kinetic type</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #ff5f6d, #ffc371);
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+  }
+  .line { font-size: 14vmin; font-weight: 800; letter-spacing: -0.03em; display: flex; gap: .25em; }
+  .slot { position: relative; display: inline-block; height: 1.15em; overflow: hidden; }
+  .slot .sizer { visibility: hidden; font-weight: inherit; }
+  .slot span {
+    position: absolute; left: 0; top: 0;
+    opacity: 0; transform: translateY(100%);
+    animation: cycle 9s cubic-bezier(.7,0,.3,1) infinite;
+  }
+  .slot span:nth-child(2) { animation-delay: 3s; }
+  .slot span:nth-child(3) { animation-delay: 6s; }
+  @keyframes cycle {
+    0%   { opacity: 0; transform: translateY(100%); }
+    6%   { opacity: 1; transform: translateY(0); }
+    30%  { opacity: 1; transform: translateY(0); }
+    36%  { opacity: 0; transform: translateY(-100%); }
+    100% { opacity: 0; transform: translateY(-100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slot span { animation: none; }
+    .slot span:first-child { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="line">
+    <span>We</span>
+    <span class="slot"><span>build.</span><span>measure.</span><span>learn.</span><b class="sizer">measure.</b></span>
+  </div>
+</body>
+</html>

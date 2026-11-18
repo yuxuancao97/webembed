@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WebEmbed: a PowerPoint content add-in that shows a live web page or HTML
+  asset on a slide. All URLs below point at the local dev server; to host it
+  somewhere else, run the sideload script with ADDIN_URL=https://your.host
+  and it rewrites them in the copy it installs.
+-->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:type="ContentApp">
+  <Id>9a938d04-4ec2-4539-a4f9-880d8570f59c</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>WebEmbed</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="WebEmbed" />
+  <Description DefaultValue="Embed live web pages, videos and HTML animations on a slide." />
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-80.png" />
+  <SupportUrl DefaultValue="https://localhost:3000/" />
+  <AppDomains>
+    <AppDomain>https://localhost:3000</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Presentation" />
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/embed.html" />
+    <RequestedWidth>640</RequestedWidth>
+    <RequestedHeight>360</RequestedHeight>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <AllowSnapshot>true</AllowSnapshot>
+</OfficeApp>

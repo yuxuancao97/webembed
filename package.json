@@ -1,0 +1,17 @@
+{
+  "name": "webembed",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PowerPoint (Mac) content add-in that embeds live web pages and HTML animations on slides.",
+  "type": "module",
+  "scripts": {
+    "certs": "npx --yes office-addin-dev-certs install",
+    "start": "node server.mjs",
+    "preview": "node server.mjs --http",
+    "sideload": "node scripts/sideload.mjs",
+    "unsideload": "node scripts/sideload.mjs --remove",
+    "validate": "npx --yes office-addin-manifest validate manifest.xml",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

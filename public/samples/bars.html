@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar chart build</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; }
+  svg { display: block; width: 100vw; height: 100vh; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .bar { fill: #4f46e5; transform-box: fill-box; transform-origin: bottom; animation: grow 6s cubic-bezier(.2,.8,.2,1) infinite both; }
+  .bar.hi { fill: #f97316; }
+  .val { font-size: 22px; font-weight: 700; fill: #1d1d22; text-anchor: middle; animation: fade 6s ease infinite both; }
+  .lab { font-size: 18px; fill: #6b6b76; text-anchor: middle; }
+  .title { font-size: 28px; font-weight: 700; fill: #1d1d22; }
+  @keyframes grow { 0% { transform: scaleY(0); } 25%, 85% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+  @keyframes fade { 0%, 20% { opacity: 0; } 30%, 82% { opacity: 1; } 95%, 100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .bar, .val { animation: none; } }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" id="chart">
+  <text class="title" x="60" y="56">Quarterly revenue ($M)</text>
+  <line x1="60" y1="390" x2="760" y2="390" stroke="#d9d9e0" stroke-width="2"/>
+</svg>
+<script>
+  const data = [["Q1", 42], ["Q2", 58], ["Q3", 51], ["Q4", 87]];
+  const svg = document.getElementById("chart");
+  const ns = "http://www.w3.org/2000/svg";
+  const max = 100, plotTop = 90, base = 390, slot = 700 / data.length, bw = slot * 0.55;
+  data.forEach(([label, v], i) => {
+    const x = 60 + slot * i + (slot - bw) / 2;
+    const hgt = (v / max) * (base - plotTop);
+    const el = (tag, attrs, text) => {
+      const n = document.createElementNS(ns, tag);
+      for (const k in attrs) n.setAttribute(k, attrs[k]);
+      if (text != null) n.textContent = text;
+      svg.append(n);
+      return n;
+    };
+    const bar = el("rect", { class: "bar" + (i === data.length - 1 ? " hi" : ""), x, y: base - hgt, width: bw, height: hgt, rx: 6 });
+    bar.style.animationDelay = i * 0.15 + "s";
+    const val = el("text", { class: "val", x: x + bw / 2, y: base - hgt - 12 }, v);
+    val.style.animationDelay = i * 0.15 + "s";
+    el("text", { class: "lab", x: x + bw / 2, y: base + 30 }, label);
+  });
+</script>
+</body>
+</html>

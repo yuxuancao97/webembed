@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebEmbed</title>
+  <link rel="stylesheet" href="embed.css" />
+  <script>
+    // Diagnostics: when served from the local dev server, report startup steps
+    // and errors to its terminal (POST /api/log). Silent everywhere else.
+    (function () {
+      var on = location.hostname === "localhost";
+      var id = Math.random().toString(36).slice(2, 6);
+      function log(kind, msg) {
+        if (!on) return;
+        try { navigator.sendBeacon("api/log", JSON.stringify({ id: id, kind: kind, msg: String(msg) })); } catch (e) {}
+      }
+      window.__wlog = log;
+      addEventListener("error", function (e) {
+        var t = e.target;
+        if (t && t !== window && (t.src || t.href)) log("load-failed", t.src || t.href);
+        else log("error", (e.message || "") + " @ " + (e.filename || "") + ":" + (e.lineno || ""));
+      }, true);
+      addEventListener("unhandledrejection", function (e) { log("rejection", e.reason && (e.reason.stack || e.reason.message) || e.reason); });
+      log("boot", navigator.userAgent);
+      if (on) {
+        // Is PowerPoint letting this page draw? Report visibility, focus and
+        // whether animation frames run, whenever any of them changes.
+        var frames = 0, last = "";
+        (function tick() { frames++; requestAnimationFrame(tick); })();
+        function report(why) {
+          var s = "visibility=" + document.visibilityState + " focus=" + document.hasFocus() + " frames/2s=" + (frames > 0 ? "yes" : "NONE");
+          if (s !== last || why) { log("paint", (why ? why + ": " : "") + s); last = s; }
+          frames = 0;
+        }
+        setInterval(report, 2000);
+        document.addEventListener("visibilitychange", function () { report("visibilitychange"); });
+      }
+    })();
+  </script>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body data-view="edit">
+  <!-- The embedded content fills the whole add-in frame. -->
+  <main id="stage" aria-live="polite"></main>
+
+  <!-- Floating controls, only in Normal (edit) view; hidden during the slideshow. -->
+  <div id="toolbar" hidden>
+    <button type="button" id="btn-reload" title="Reload">↻</button>
+    <button type="button" id="btn-edit" title="Change content">⚙︎</button>
+  </div>
+
+  <!-- Setup panel -->
+  <section id="config" hidden>
+    <header>
+      <strong>WebEmbed</strong>
+      <nav role="tablist">
+        <button type="button" role="tab" data-tab="url" aria-selected="true">Web page</button>
+        <button type="button" role="tab" data-tab="html" aria-selected="false">HTML</button>
+        <button type="button" role="tab" data-tab="samples" aria-selected="false">Samples</button>
+      </nav>
+    </header>
+
+    <div class="pane" data-pane="url">
+      <label for="url-input">Address</label>
+      <input id="url-input" type="url" placeholder="https://example.com or a YouTube / Vimeo link" autocomplete="off" spellcheck="false" />
+      <p class="hint" id="url-status">The page loads live every time the slide shows, so you need a connection while presenting.</p>
+    </div>
+
+    <div class="pane" data-pane="html" hidden>
+      <label for="html-input">HTML, CSS and JS (stored inside the deck)</label>
+      <textarea id="html-input" spellcheck="false" placeholder="<style>…</style>&#10;<div>…</div>&#10;<script>…</script>"></textarea>
+      <div class="row">
+        <label class="file">Open .html file… <input id="html-file" type="file" accept=".html,.htm,.svg,text/html,image/svg+xml" /></label>
+        <span class="hint" id="html-size"></span>
+      </div>
+    </div>
+
+    <div class="pane" data-pane="samples" hidden>
+      <ul id="sample-list"></ul>
+      <p class="hint"><b>Link</b> loads the sample from the add-in server. <b>Copy into deck</b> stores the HTML in the .pptx, so the asset itself doesn't need to stay hosted.</p>
+    </div>
+
+    <footer>
+      <label class="zoom">Zoom
+        <select id="zoom">
+          <option value="0.5">50%</option>
+          <option value="0.67">67%</option>
+          <option value="0.8">80%</option>
+          <option value="1" selected>100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <button type="button" id="btn-remove" class="quiet" hidden>Clear</button>
+      <button type="button" id="btn-cancel" class="quiet" hidden>Cancel</button>
+      <button type="button" id="btn-apply" class="primary">Embed</button>
+    </footer>
+    <p id="error" role="alert" hidden></p>
+  </section>
+
+  <script src="embed.js"></script>
+</body>
+</html>
