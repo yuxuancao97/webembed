@@ -55,20 +55,22 @@ Requires Node 18+ and PowerPoint for Mac (Microsoft 365 / 2019+).
 - **Scrolling may change slides.** Some PowerPoint versions send the scroll wheel to slide navigation even over an add-in ([office-js#2662](https://github.com/OfficeDev/office-js/issues/2662)). Dragging the page's scrollbar still works.
 - **A blank or frozen box** is PowerPoint showing a saved snapshot instead of the live page. Click PowerPoint's ↻ on the box (in Normal view) before you start the show.
 
-## Hosting it for real
+## Hosted copy (GitHub Pages)
 
-`public/` is static except for the optional `/api/check` endpoint. Any HTTPS static host works: GitHub Pages, Netlify, Cloudflare Pages, S3, and so on.
+The add-in is published at **https://yuxuancao97.github.io/webembed/**. Every push to `main` rebuilds it from `public/` (`.github/workflows/pages.yml`), together with a `manifest.xml` that points at it. With the hosted copy you don't need `npm start` to present.
 
-1. Upload the contents of `public/`, for example to `https://you.github.io/webembed/`.
-2. Re-sideload with that base URL. The script rewrites every `localhost:3000` URL in the installed copy.
+1. Install the manifest that loads from Pages, then quit and reopen PowerPoint.
 
    ```bash
-   ADDIN_URL=https://you.github.io/webembed npm run sideload
+   ADDIN_URL=https://yuxuancao97.github.io/webembed npm run sideload
    ```
 
-3. To share the add-in with other people on Mac, give them that rewritten manifest (it's in `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef/`). Or deploy it org-wide through the Microsoft 365 admin center. Anyone opening the deck without the add-in sees the snapshot image.
+2. To share the add-in with other people on Mac, send them https://yuxuancao97.github.io/webembed/manifest.xml to copy into `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef/`. Or deploy it org-wide through the Microsoft 365 admin center. Anyone opening the deck without the add-in sees the snapshot image.
+3. A site you embed has to allow `https://yuxuancao97.github.io` in its CSP `frame-ancestors` (or allow any site).
 
-On static hosting the "is this site embeddable?" check silently turns off, because it needs the Node endpoint. Everything else works.
+Any other HTTPS static host works the same way: upload `public/` and run the sideload with that `ADDIN_URL`. To go back to the local server, run `npm run sideload` without it.
+
+On static hosting the "is this site embeddable?" check is off, because it needs the Node endpoint. A site that refuses embedding then shows as a blank box with no explanation. Everything else works.
 
 ## Limits worth knowing
 
