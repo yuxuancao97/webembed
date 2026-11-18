@@ -4,6 +4,7 @@
 //   ADDIN_URL=https://me.github.io/webembed node scripts/sideload.mjs
 //                                        install, pointing at your hosted copy
 //   node scripts/sideload.mjs --remove   uninstall
+//   node scripts/sideload.mjs --print    write the (rewritten) manifest to stdout
 //
 // PowerPoint reads developer manifests from its "wef" folder. Quit and
 // reopen PowerPoint after running this.
@@ -30,7 +31,14 @@ if (base) {
     console.error("ADDIN_URL must start with https://");
     process.exit(1);
   }
+  // AppDomain takes an origin only; everything else takes the full base URL.
+  xml = xml.replace(/<AppDomain>https:\/\/localhost:3000<\/AppDomain>/, `<AppDomain>${new URL(base).origin}</AppDomain>`);
   xml = xml.replaceAll("https://localhost:3000", base);
+}
+
+if (process.argv.includes("--print")) {
+  process.stdout.write(xml);
+  process.exit(0);
 }
 
 fs.mkdirSync(wef, { recursive: true });
