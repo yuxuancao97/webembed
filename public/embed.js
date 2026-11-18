@@ -233,6 +233,7 @@
     for (const b of config.querySelectorAll("[role=tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === tab));
     for (const p of config.querySelectorAll(".pane")) p.hidden = p.dataset.pane !== tab;
     applyBtn.hidden = tab === "samples";
+    applyBtn.textContent = tab === "url" && urlInput.dataset.warned ? "Embed anyway" : "Embed";
     showError("");
     focusField();
   }
@@ -305,6 +306,7 @@
   const chosenWidth = () => Number(widthSel.value) || 0;
 
   async function applyUrl() {
+    if (applyBtn.disabled) return; // a framing check is already running
     let url;
     try { url = normalizeUrl(urlInput.value); } catch (e) { return showError(e.message); }
     showError("");
