@@ -2,8 +2,9 @@
  *
  * Each inserted add-in is its own instance with its own settings, so one deck
  * can hold many embeds. What gets stored (in the .pptx) is:
- *   { mode: "url",  url,  zoom }    a live page, fetched every time the slide shows
- *   { mode: "html", html, name, zoom }  inline HTML, rendered in a sandboxed iframe
+ *   { mode: "url",  url,  width }          a live page, fetched every time the slide shows
+ *   { mode: "html", html, name, width }    inline HTML, rendered in a sandboxed iframe
+ * width is the page width in CSS px that gets scaled to fit the box (0 = box width).
  *
  * Outside PowerPoint (plain browser preview) the same code runs against
  * localStorage, so the UI can be developed without Office.
@@ -22,16 +23,21 @@
     { file: "samples/bars.html", title: "Bar chart build", note: "Animated SVG chart, replays" },
   ];
 
+  const URL_HINT = "The page loads live, so you need a connection when presenting.";
+
   const $ = (sel) => document.querySelector(sel);
   const stage = $("#stage");
   const config = $("#config");
-  const toolbar = $("#toolbar");
+  const bar = $("#bar");
+  const barLabel = $("#bar-label");
   const urlInput = $("#url-input");
   const urlStatus = $("#url-status");
   const htmlInput = $("#html-input");
   const htmlSize = $("#html-size");
-  const zoomSel = $("#zoom");
+  const widthSel = $("#page-width");
+  const applyBtn = $("#btn-apply");
   const errorEl = $("#error");
+  const log = window.__wlog || (() => {});
 
   let inOffice = false;
   let state = null;
@@ -39,10 +45,20 @@
 
   /* ---------------- storage ---------------- */
 
+  // Older versions stored a zoom factor instead of a page width.
+  function upgrade(s) {
+    if (s && s.width == null) {
+      const z = Number(s.zoom) || 1;
+      s = { ...s, width: z === 1 ? 0 : Math.round(innerWidth / z) };
+      delete s.zoom;
+    }
+    return s;
+  }
+
   const store = {
     load() {
-      if (inOffice) return Office.context.document.settings.get(KEY) || null;
-      try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; }
+      if (inOffice) return upgrade(Office.context.document.settings.get(KEY) || null);
+      try { return upgrade(JSON.parse(localStorage.getItem(KEY))); } catch { return null; }
     },
     save(value) {
       if (!inOffice) {
@@ -65,7 +81,8 @@
   function setView(view) {
     // PowerPoint reports "edit" for Normal view and "read" for Slide Show.
     document.body.dataset.view = view === "read" ? "read" : "edit";
-    (window.__wlog || (() => {}))("view", view);
+    log("view", view);
+    fit(); // the bar comes and goes, so the stage changes height
   }
 
   function watchView() {
@@ -75,7 +92,7 @@
     }
     if (Office.EventType && Office.EventType.ActiveViewChanged && doc.addHandlerAsync) {
       try { doc.addHandlerAsync(Office.EventType.ActiveViewChanged, (e) => setView(e.activeView)); }
-      catch { /* not supported: toolbar just stays hover-only */ }
+      catch { /* not supported: the bar just stays in the slideshow */ }
     }
   }
 
@@ -112,34 +129,61 @@
     return u.href;
   }
 
+  const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };
+
   // Asks the add-in server whether the site allows framing (X-Frame-Options / CSP).
   // The browser can't tell us this itself: a blocked frame still fires "load".
+  // On static hosting there is no endpoint, and this returns null.
   async function checkFraming(url) {
     try {
       const r = await fetch("api/check?url=" + encodeURIComponent(url) + "&origin=" + encodeURIComponent(location.origin), { cache: "no-store" });
       if (!r.ok) return null;
       return await r.json();
     } catch {
-      return null; // static hosting without the check endpoint
+      return null;
     }
   }
 
   /* ---------------- rendering ---------------- */
 
+  // Lay the page out at the chosen width, then scale it to the box.
+  function fit() {
+    const f = stage.querySelector("iframe");
+    if (!f || !state) return;
+    const w = Number(state.width) || 0;
+    const W = stage.clientWidth, H = stage.clientHeight;
+    if (!w || !W) {
+      f.style.width = f.style.height = f.style.transform = "";
+      return;
+    }
+    const s = W / w;
+    f.style.width = w + "px";
+    f.style.height = H / s + "px";
+    f.style.transform = `scale(${s})`;
+  }
+
   function render() {
     stage.replaceChildren();
-    document.body.classList.toggle("has-content", !!state);
-    toolbar.hidden = !state;
+    document.body.classList.toggle("has-bar", !!state);
+    bar.hidden = !state;
     if (!state) return openConfig();
 
     const f = document.createElement("iframe");
     if (state.mode === "url") {
+      barLabel.textContent = hostOf(state.url);
+      barLabel.title = state.url;
+      const loading = document.createElement("div");
+      loading.className = "loading";
+      loading.textContent = `Loading ${hostOf(state.url)}…`;
+      stage.append(loading);
       f.src = state.url;
       f.allow = "autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write";
       f.referrerPolicy = "strict-origin-when-cross-origin";
       f.title = state.url;
-      f.addEventListener("load", () => log("iframe-load", state && state.url));
+      f.addEventListener("load", () => { loading.remove(); log("iframe-load", state && state.url); });
     } else {
+      barLabel.textContent = state.name || "HTML";
+      barLabel.title = "";
       // No allow-same-origin: inline HTML runs with an opaque origin and
       // cannot reach the add-in or Office APIs.
       f.setAttribute("sandbox", "allow-scripts allow-popups");
@@ -147,13 +191,8 @@
       f.srcdoc = state.html;
       f.title = state.name || "Embedded HTML";
     }
-    const z = Number(state.zoom) || 1;
-    if (z !== 1) {
-      f.style.width = (100 / z) + "%";
-      f.style.height = (100 / z) + "%";
-      f.style.transform = `scale(${z})`;
-    }
     stage.append(f);
+    fit();
 
     // A site that refuses framing renders as a silent white box. Re-check on
     // every render (headers can change) and show a clear card instead.
@@ -172,8 +211,6 @@
   }
 
   function showBlocked(url, reason) {
-    let host = url;
-    try { host = new URL(url).hostname.replace(/^www\./, ""); } catch {}
     const card = document.createElement("div");
     card.className = "blocked";
     card.innerHTML = `
@@ -181,14 +218,11 @@
       <p class="why"></p>
       <div class="actions">
         <button type="button" class="primary" data-act="open">Open in browser</button>
-        <button type="button" class="quiet edit-only" data-act="change">Change</button>
       </div>`;
-    card.querySelector("strong").textContent = `${host} can't be shown inside a slide`;
+    card.querySelector("strong").textContent = `${hostOf(url)} can't be shown inside a slide`;
     card.querySelector(".why").textContent = reason + " Only the site's owner can allow it.";
     card.querySelector('[data-act="open"]').onclick = () => openInBrowser(url);
-    card.querySelector('[data-act="change"]').onclick = openConfig;
     stage.replaceChildren(card);
-    document.body.classList.remove("has-content");
     log("blocked", `${url}: ${reason}`);
   }
 
@@ -198,26 +232,40 @@
     activeTab = tab;
     for (const b of config.querySelectorAll("[role=tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === tab));
     for (const p of config.querySelectorAll(".pane")) p.hidden = p.dataset.pane !== tab;
-    $("#btn-apply").hidden = tab === "samples";
+    applyBtn.hidden = tab === "samples";
     showError("");
+    focusField();
+  }
+
+  function focusField() {
+    const el = activeTab === "url" ? urlInput : activeTab === "html" ? htmlInput : null;
+    if (el && !config.hidden) requestAnimationFrame(() => el.focus());
+  }
+
+  function resetUrlStatus() {
+    delete urlInput.dataset.warned;
+    applyBtn.textContent = "Embed";
+    urlStatus.className = "hint";
+    urlStatus.textContent = URL_HINT;
   }
 
   function openConfig() {
-    const has = !!state;
-    $("#btn-cancel").hidden = !has;
-    $("#btn-remove").hidden = !has;
-    zoomSel.value = String(state?.zoom ?? 1);
+    $("#btn-cancel").hidden = !state;
+    widthSel.value = String(state?.width ?? 0);
+    if (!widthSel.value) widthSel.value = "0"; // a width that isn't in the list
     if (state?.mode === "url") urlInput.value = state.url;
     if (state?.mode === "html") htmlInput.value = state.html;
+    resetUrlStatus();
     updateSize();
-    selectTab(state?.mode || activeTab);
     config.hidden = false;
-    toolbar.hidden = true;
+    bar.hidden = true;
+    selectTab(state?.mode || activeTab);
   }
 
   function closeConfig() {
     config.hidden = true;
-    toolbar.hidden = !state;
+    bar.hidden = !state;
+    showError("");
   }
 
   function showError(msg) {
@@ -229,7 +277,7 @@
   const byteLength = (s) => new TextEncoder().encode(JSON.stringify(s)).length;
 
   function updateSize() {
-    const n = byteLength(htmlInput.value);
+    const n = htmlInput.value ? byteLength(htmlInput.value) : 0;
     if (!n) { htmlSize.textContent = ""; return; }
     const kb = (n / 1024).toFixed(n < 10240 ? 1 : 0);
     const over = n > MAX_INLINE_BYTES;
@@ -240,7 +288,6 @@
   }
 
   async function commit(next) {
-    const log = window.__wlog || (() => {});
     log("commit", next ? next.mode + " " + (next.url || next.name) : "clear");
     try {
       await store.save(next);
@@ -255,25 +302,26 @@
     render();
   }
 
+  const chosenWidth = () => Number(widthSel.value) || 0;
+
   async function applyUrl() {
     let url;
     try { url = normalizeUrl(urlInput.value); } catch (e) { return showError(e.message); }
+    showError("");
     urlInput.value = url;
-    urlStatus.className = "hint";
-    urlStatus.textContent = "Checking whether the site allows embedding…";
-    const verdict = await checkFraming(url);
-    if (verdict && verdict.embeddable === false) {
-      urlStatus.className = "hint warn";
-      urlStatus.textContent = `${verdict.reason} It will most likely show as blank or an error. Press Embed again to use it anyway.`;
-      if (urlInput.dataset.warned !== url) { urlInput.dataset.warned = url; return; }
-    } else if (verdict && verdict.embeddable === true) {
-      urlStatus.className = "hint ok";
-      urlStatus.textContent = "Looks embeddable.";
-    } else {
-      urlStatus.className = "hint";
-      urlStatus.textContent = verdict?.reason || "Couldn't check this site. If the slide stays blank, the site doesn't allow embedding.";
+    if (urlInput.dataset.warned !== url) {
+      applyBtn.disabled = true;
+      const verdict = await checkFraming(url);
+      applyBtn.disabled = false;
+      if (verdict && verdict.embeddable === false) {
+        urlInput.dataset.warned = url;
+        urlStatus.className = "hint warn";
+        urlStatus.textContent = `${verdict.reason} The slide will show an Open in browser button instead of the page.`;
+        applyBtn.textContent = "Embed anyway";
+        return;
+      }
     }
-    await commit({ mode: "url", url, zoom: Number(zoomSel.value) });
+    await commit({ mode: "url", url, width: chosenWidth() });
   }
 
   async function applyHtml(html, name) {
@@ -281,18 +329,17 @@
     if (byteLength(html) > MAX_INLINE_BYTES) {
       return showError("Too big to store in the deck. Host the file and embed it by URL instead.");
     }
-    await commit({ mode: "html", html, name: name || "Inline HTML", zoom: Number(zoomSel.value) });
+    await commit({ mode: "html", html, name: name || "Inline HTML", width: chosenWidth() });
   }
 
   function buildSamples() {
     const list = $("#sample-list");
     for (const s of SAMPLES) {
       const li = document.createElement("li");
-      li.innerHTML = `<span class="name"></span><button type="button" data-act="link">Link</button><button type="button" data-act="copy">Copy into deck</button>`;
+      li.innerHTML = `<span class="name"></span><button type="button">Use</button>`;
       li.querySelector(".name").innerHTML = `${s.title}<small>${s.note}</small>`;
-      li.querySelector('[data-act="link"]').onclick = () =>
-        commit({ mode: "url", url: new URL(s.file, location.href).href, zoom: Number(zoomSel.value) });
-      li.querySelector('[data-act="copy"]').onclick = async () => {
+      // Copied into the deck, so the sample doesn't depend on this server staying up.
+      li.querySelector("button").onclick = async () => {
         try {
           const r = await fetch(s.file);
           if (!r.ok) throw new Error(r.status);
@@ -305,14 +352,19 @@
 
   function wireUi() {
     for (const b of config.querySelectorAll("[role=tab]")) b.onclick = () => selectTab(b.dataset.tab);
-    $("#btn-apply").onclick = () => (activeTab === "url" ? applyUrl() : applyHtml(htmlInput.value));
-    $("#btn-cancel").onclick = () => { showError(""); closeConfig(); };
-    $("#btn-remove").onclick = () => { urlInput.value = ""; htmlInput.value = ""; commit(null); };
+    applyBtn.onclick = () => (activeTab === "url" ? applyUrl() : applyHtml(htmlInput.value));
+    $("#btn-cancel").onclick = closeConfig;
     $("#btn-edit").onclick = openConfig;
     $("#btn-reload").onclick = render;
     urlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") applyUrl(); });
-    urlInput.addEventListener("input", () => { delete urlInput.dataset.warned; });
+    urlInput.addEventListener("input", resetUrlStatus);
     htmlInput.addEventListener("input", updateSize);
+    htmlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) applyHtml(htmlInput.value);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && state && !config.hidden) closeConfig();
+    });
     $("#html-file").addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -320,12 +372,12 @@
       updateSize();
       e.target.value = "";
     });
+    addEventListener("resize", fit);
     buildSamples();
   }
 
   /* ---------------- boot ---------------- */
 
-  const log = window.__wlog || (() => {});
   let started = false;
 
   function start(reason) {
@@ -335,7 +387,7 @@
     try {
       wireUi();
       state = store.load();
-      log("state", state ? `${state.mode} ${state.mode === "url" ? state.url : (state.name + ", " + state.html.length + " chars")}` : "empty -> setup panel");
+      log("state", describe(state));
       render();
       log("rendered", `config ${config.hidden ? "hidden" : "shown"}, iframe ${stage.querySelector("iframe") ? "yes" : "no"}, ${innerWidth}x${innerHeight}`);
     } catch (e) {
@@ -344,13 +396,26 @@
     }
   }
 
+  function describe(s) {
+    if (!s) return "empty -> setup panel";
+    return `${s.mode} ${s.mode === "url" ? s.url : (s.name + ", " + s.html.length + " chars")} width=${s.width}`;
+  }
+
   if (typeof Office !== "undefined" && Office.onReady) {
     log("office.js", "loaded, waiting for onReady");
     Office.onReady((info) => {
       inOffice = !!(info && info.host);
       log("onReady", `host=${info && info.host} platform=${info && info.platform}`);
       if (inOffice) watchView();
-      start("onReady");
+      if (!started) return start("onReady");
+      // The fallback below already started from browser storage. Now that the
+      // document is reachable, show what it holds instead.
+      if (inOffice) {
+        state = store.load();
+        log("state", "late onReady: " + describe(state));
+        if (state) closeConfig();
+        render();
+      }
     });
     // Never leave the box blank if Office is slow to initialise.
     setTimeout(() => { if (!started) { log("warn", "onReady not fired after 5s"); start("timeout"); } }, 5000);

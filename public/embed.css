@@ -29,16 +29,22 @@ body {
   color: var(--fg);
   background: var(--bg);
 }
-body.has-content { background: transparent; }
 
 /* ---------- stage ---------- */
-#stage { position: absolute; inset: 0; overflow: hidden; }
+/* White like a browser tab: pages without a background expect it. */
+#stage { position: absolute; inset: 0; overflow: hidden; background: #fff; }
+body[data-view="edit"].has-bar #stage { bottom: var(--bar-h); }
 #stage iframe {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
   border: 0; display: block;
   transform-origin: 0 0;
   background: transparent;
+}
+.loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #6b6b76; font-size: 12px;
 }
 
 /* ---------- site refused framing ---------- */
@@ -53,20 +59,22 @@ body.has-content { background: transparent; }
 .blocked .actions { display: flex; gap: 8px; margin-top: 4px; }
 body[data-view="read"] .edit-only { display: none; }
 
-/* ---------- toolbar (edit view only) ---------- */
-#toolbar {
-  position: absolute; top: 6px; right: 6px; z-index: 5;
-  display: flex; gap: 4px;
-  /* Always visible in Normal view: hover over a cross-origin frame doesn't
-     reach this page, so a hover-only toolbar could never be found. */
-  opacity: .55; transition: opacity .15s;
+/* ---------- bar under the content (Normal view only) ---------- */
+:root { --bar-h: 28px; }
+#bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--bar-h);
+  display: flex; align-items: center; gap: 6px; padding: 0 4px 0 8px;
+  background: var(--panel); border-top: 1px solid var(--line);
 }
-#toolbar:hover, #toolbar:focus-within { opacity: 1; }
-#toolbar[hidden], body[data-view="read"] #toolbar { display: none; }
-#toolbar button {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: 1px solid var(--line); background: var(--panel); color: var(--fg);
-  font-size: 15px; cursor: pointer; box-shadow: 0 1px 3px rgb(0 0 0 / .2);
+#bar[hidden], body[data-view="read"] #bar { display: none; }
+#bar-label {
+  flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  color: var(--muted); font-size: 12px;
+}
+#bar button {
+  height: 22px; padding: 0 8px; border-radius: 5px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  font: inherit; font-size: 12px; cursor: pointer;
 }
 
 /* ---------- config panel ---------- */
@@ -110,7 +118,7 @@ textarea { flex: 1; min-height: 60px; resize: none; font: 12px/1.35 ui-monospace
 
 footer { display: flex; align-items: center; gap: 8px; }
 footer .spacer { flex: 1; }
-.zoom { font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.width { font-weight: 500; display: flex; align-items: center; gap: 6px; }
 button.primary, button.quiet, #sample-list button {
   font: inherit; border-radius: 6px; padding: 5px 12px; cursor: pointer;
   border: 1px solid var(--line); background: var(--panel); color: var(--fg);

@@ -4,9 +4,9 @@ A PowerPoint **content add-in** that puts a live web view on a slide. You can em
 
 - **Web pages**: any https site that allows embedding. YouTube and Vimeo links are converted to their players automatically.
 - **HTML assets**: paste HTML/CSS/JS or open an `.html`/`.svg` file. It's stored *inside the .pptx*, so the asset doesn't need its own hosting. The add-in itself still needs to be reachable (see below).
-- **Samples**: three ready-made animations (particle orbit, kinetic type, animated bar chart).
+- **Samples**: three ready-made animations (particle orbit, kinetic type, animated bar chart), copied into the deck when you pick one.
 
-Each embed is a box you can move and resize like any shape. It's live in the slideshow, so animations play and videos and pages respond to clicks. You can put several embeds on a slide, each with its own content. The floating ↻ / ⚙︎ buttons appear on hover in Normal view and are hidden while presenting.
+Each embed is a box you can move and resize like any shape. It's live in the slideshow, so animations play and videos and pages respond to clicks. You can put several embeds on a slide, each with its own content. In Normal view a bar under the content shows what's embedded, with **↻** (reload) and **Change**. The bar is hidden while presenting, and the content then fills the box.
 
 ## How it works
 
@@ -16,7 +16,7 @@ PowerPoint slide
      └─ <iframe>          ← your URL, or your HTML via srcdoc (sandboxed)
 ```
 
-Settings for each embed (URL or inline HTML, plus zoom) are saved in the document through `Office.context.document.settings`.
+Settings for each embed (URL or inline HTML, plus page width) are saved in the document through `Office.context.document.settings`.
 
 ## Setup (one time)
 
@@ -74,13 +74,13 @@ On static hosting the "is this site embeddable?" check silently turns off, becau
 
 | Thing | Why |
 |---|---|
-| Some sites show blank or an error (Google, GitHub, most banks and social sites) | They send `X-Frame-Options` or CSP `frame-ancestors`, which forbids embedding. No add-in can override that. The server checks the headers when you press Embed and warns you first. |
+| Some sites show blank or an error (Google, GitHub, most banks and social sites) | They send `X-Frame-Options` or CSP `frame-ancestors`, which forbids embedding. No add-in can override that. The server checks the headers when you press Embed and warns you first. A blocked site shows an **Open in browser** button on the slide instead. |
 | `http://` pages are rejected | The add-in runs over HTTPS, and browsers block insecure frames inside it. |
 | Inline HTML is capped at ~1.4 MB | Office stores add-in settings in the document with a size cap (documented as 2 MB). For bigger assets (videos, large images), host the files and embed by URL. |
 | Inline HTML can't load other local files | It runs from `srcdoc`, so inline your CSS and JS and use `data:` URIs or absolute https URLs for images and fonts. |
 | Inline HTML is sandboxed | `allow-scripts allow-popups` only, with no same-origin access. It can't touch the deck, cookies or the add-in. |
 | Embeds need the add-in host, and a connection, while presenting | Even inline HTML is rendered by the add-in page, and that page loads `office.js` from Microsoft's CDN. Copying an asset into the deck removes the dependency on the asset's own site, not on the add-in host. Offline presenting hasn't been tested. |
-| The box is capped at 1000×1000 pt on insert | PowerPoint's limit for the initial size. Drag to resize afterwards. Use **Zoom** to fit a desktop-width page into a small box. |
+| The box is capped at 1000×1000 pt on insert | PowerPoint's limit for the initial size. Drag to resize afterwards. Set **Page width** (for example Laptop, 1280 px) to lay a page out at desktop width and scale it down to the box. |
 
 ## Commands
 

@@ -41,19 +41,19 @@
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
 <body data-view="edit">
-  <!-- The embedded content fills the whole add-in frame. -->
+  <!-- The embedded content. In Normal view it stops above the bar; in the slideshow it fills the box. -->
   <main id="stage" aria-live="polite"></main>
 
-  <!-- Floating controls, only in Normal (edit) view; hidden during the slideshow. -->
-  <div id="toolbar" hidden>
+  <!-- Normal view only: a bar under the content, so nothing covers the page. -->
+  <div id="bar" hidden>
+    <span id="bar-label"></span>
     <button type="button" id="btn-reload" title="Reload">↻</button>
-    <button type="button" id="btn-edit" title="Change content">⚙︎</button>
+    <button type="button" id="btn-edit">Change</button>
   </div>
 
   <!-- Setup panel -->
   <section id="config" hidden>
     <header>
-      <strong>WebEmbed</strong>
       <nav role="tablist">
         <button type="button" role="tab" data-tab="url" aria-selected="true">Web page</button>
         <button type="button" role="tab" data-tab="html" aria-selected="false">HTML</button>
@@ -64,7 +64,7 @@
     <div class="pane" data-pane="url">
       <label for="url-input">Address</label>
       <input id="url-input" type="url" placeholder="https://example.com or a YouTube / Vimeo link" autocomplete="off" spellcheck="false" />
-      <p class="hint" id="url-status">The page loads live every time the slide shows, so you need a connection while presenting.</p>
+      <p class="hint" id="url-status"></p>
     </div>
 
     <div class="pane" data-pane="html" hidden>
@@ -78,22 +78,19 @@
 
     <div class="pane" data-pane="samples" hidden>
       <ul id="sample-list"></ul>
-      <p class="hint"><b>Link</b> loads the sample from the add-in server. <b>Copy into deck</b> stores the HTML in the .pptx, so the asset itself doesn't need to stay hosted.</p>
     </div>
 
     <footer>
-      <label class="zoom">Zoom
-        <select id="zoom">
-          <option value="0.5">50%</option>
-          <option value="0.67">67%</option>
-          <option value="0.8">80%</option>
-          <option value="1" selected>100%</option>
-          <option value="1.25">125%</option>
-          <option value="1.5">150%</option>
+      <label class="width">Page width
+        <select id="page-width">
+          <option value="0">Box width</option>
+          <option value="1024">Tablet, 1024 px</option>
+          <option value="1280">Laptop, 1280 px</option>
+          <option value="1440">Desktop, 1440 px</option>
+          <option value="1920">Full HD, 1920 px</option>
         </select>
       </label>
       <span class="spacer"></span>
-      <button type="button" id="btn-remove" class="quiet" hidden>Clear</button>
       <button type="button" id="btn-cancel" class="quiet" hidden>Cancel</button>
       <button type="button" id="btn-apply" class="primary">Embed</button>
     </footer>
