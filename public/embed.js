@@ -422,8 +422,19 @@
       e.target.value = "";
     });
     addEventListener("resize", fit);
-    // Hover may not reach an unselected add-in in PowerPoint, so the bar also
-    // shows while the box has focus (it does after a click into it).
+    // PowerPoint takes the pointer away from the add-in when a mouse button
+    // goes down on it, which ends :hover before the click lands. Keep the bar
+    // up (and clickable) for a moment after the pointer was last seen.
+    let sleepTimer = 0;
+    const wake = () => {
+      clearTimeout(sleepTimer);
+      document.body.classList.add("awake");
+      sleepTimer = setTimeout(() => document.body.classList.remove("awake"), 2500);
+    };
+    for (const ev of ["pointermove", "pointerdown", "pointerup", "click"]) {
+      document.addEventListener(ev, wake, true);
+    }
+    // The bar also shows while the box has focus (after a click into it).
     let focused = null;
     setInterval(() => {
       const now = document.hasFocus();
