@@ -66,6 +66,8 @@ The add-in is published at **https://yuxuancao97.github.io/webembed/**. Every pu
    ADDIN_URL=https://yuxuancao97.github.io/webembed npm run sideload
    ```
 
+   Or double-click `install-hosted.command`, which runs the same thing in Terminal. If it fails with "operation not permitted", macOS is blocking access to PowerPoint's folder. Turn on Full Disk Access for Terminal (System Settings › Privacy & Security), quit Terminal with ⌘Q, run it again, then turn the access back off.
+
 2. To share the add-in with other people on Mac, send them https://yuxuancao97.github.io/webembed/manifest.xml to copy into `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef/`. Or deploy it org-wide through the Microsoft 365 admin center. Anyone opening the deck without the add-in sees the snapshot image.
 3. A site you embed has to allow `https://yuxuancao97.github.io` in its CSP `frame-ancestors` (or allow any site).
 
