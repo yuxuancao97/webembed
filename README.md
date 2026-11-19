@@ -6,7 +6,7 @@ A PowerPoint **content add-in** that puts a live web view on a slide. You can em
 - **HTML assets**: paste HTML/CSS/JS or open an `.html`/`.svg` file. It's stored *inside the .pptx*, so the asset doesn't need its own hosting. The add-in itself still needs to be reachable (see below).
 - **Samples**: three ready-made animations (particle orbit, kinetic type, animated bar chart), copied into the deck when you pick one.
 
-Each embed is a box you can move and resize like any shape. It's live in the slideshow, so animations play and videos and pages respond to clicks. You can put several embeds on a slide, each with its own content. In Normal view a bar under the content shows what's embedded, with **↻** (reload) and **Change**. The bar is hidden while presenting, and the content then fills the box.
+Each embed is a box you can move and resize like any shape. It's live in the slideshow, so animations play and videos and pages respond to clicks. You can put several embeds on a slide, each with its own content. In Normal view, pointing at the box or clicking into it shows a bar along the bottom with what's embedded, **↻** (reload) and **Change**. The bar is hidden while presenting and the rest of the time, to keep it out of the picture PowerPoint saves of the slide.
 
 ## How it works
 
@@ -73,7 +73,7 @@ The add-in is published at **https://yuxuancao97.github.io/webembed/**. Every pu
 
 Any other HTTPS static host works the same way: upload `public/` and run the sideload with that `ADDIN_URL`. To go back to the local server, run `npm run sideload` without it.
 
-On static hosting the "is this site embeddable?" check is off, because it needs the Node endpoint. A site that refuses embedding then shows as a blank box with no explanation. Everything else works.
+On static hosting the "is this site embeddable?" check is off, because it needs the Node endpoint. A site that refuses embedding then shows as a blank box with no explanation. A page that hasn't finished loading after 15 seconds gets a strip with **Try again** and **Open in browser**. Everything else works.
 
 ## Limits worth knowing
 

@@ -162,25 +162,54 @@
     f.style.transform = `scale(${s})`;
   }
 
+  // A page is shown once it fires "load" or after REVEAL_MS, whichever comes
+  // first ("load" waits for every image and script, and most pages are
+  // readable long before that). One that still hasn't loaded after
+  // LOAD_TIMEOUT_MS gets a card on top; the page keeps loading underneath
+  // and the card goes away if it arrives.
+  const REVEAL_MS = 2000;
+  const LOAD_TIMEOUT_MS = 15000;
+  let timers = [];
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
   function render() {
+    clearTimers();
     stage.replaceChildren();
-    document.body.classList.toggle("has-bar", !!state);
     bar.hidden = !state;
     if (!state) return openConfig();
 
     const f = document.createElement("iframe");
+    // Fade in. If the host isn't painting frames, the transition would sit at
+    // its start (invisible), so drop it shortly after and jump to shown.
+    const ready = () => {
+      if (f.classList.contains("ready")) return;
+      f.classList.add("ready");
+      setTimeout(() => { f.style.transition = "none"; }, 600);
+    };
     if (state.mode === "url") {
-      barLabel.textContent = hostOf(state.url);
-      barLabel.title = state.url;
+      const url = state.url;
+      barLabel.textContent = hostOf(url);
+      barLabel.title = url;
+      // Only the author sees this; the slideshow stays empty until the page shows.
       const loading = document.createElement("div");
-      loading.className = "loading";
-      loading.textContent = `Loading ${hostOf(state.url)}…`;
+      loading.className = "loading edit-only";
+      loading.textContent = `Loading ${hostOf(url)}…`;
       stage.append(loading);
-      f.src = state.url;
+      f.src = url;
       f.allow = "autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write";
       f.referrerPolicy = "strict-origin-when-cross-origin";
-      f.title = state.url;
-      f.addEventListener("load", () => { loading.remove(); log("iframe-load", state && state.url); });
+      f.title = url;
+      f.addEventListener("load", () => {
+        clearTimers();
+        loading.remove();
+        stage.querySelector(".blocked.late")?.remove();
+        ready();
+        log("iframe-load", url);
+      });
+      timers.push(setTimeout(ready, REVEAL_MS));
+      timers.push(setTimeout(() => {
+        if (state && state.url === url) showUnreachable(url);
+      }, LOAD_TIMEOUT_MS));
     } else {
       barLabel.textContent = state.name || "HTML";
       barLabel.title = "";
@@ -188,6 +217,7 @@
       // cannot reach the add-in or Office APIs.
       f.setAttribute("sandbox", "allow-scripts allow-popups");
       f.allow = "autoplay; fullscreen";
+      f.addEventListener("load", ready);
       f.srcdoc = state.html;
       f.title = state.name || "Embedded HTML";
     }
@@ -210,20 +240,37 @@
     else window.open(url, "_blank", "noopener");
   }
 
-  function showBlocked(url, reason) {
+  // overlay: put the card on top of the page instead of replacing it.
+  function showCard(url, title, why, { retry = false, overlay = false } = {}) {
+    clearTimers();
     const card = document.createElement("div");
-    card.className = "blocked";
+    card.className = "blocked" + (overlay ? " late" : "");
     card.innerHTML = `
       <strong></strong>
       <p class="why"></p>
       <div class="actions">
+        <button type="button" class="quiet" data-act="retry" hidden>Try again</button>
         <button type="button" class="primary" data-act="open">Open in browser</button>
       </div>`;
-    card.querySelector("strong").textContent = `${hostOf(url)} can't be shown inside a slide`;
-    card.querySelector(".why").textContent = reason + " Only the site's owner can allow it.";
+    card.querySelector("strong").textContent = title;
+    card.querySelector(".why").textContent = why;
     card.querySelector('[data-act="open"]').onclick = () => openInBrowser(url);
-    stage.replaceChildren(card);
+    const again = card.querySelector('[data-act="retry"]');
+    again.hidden = !retry;
+    again.onclick = render;
+    if (overlay) stage.append(card);
+    else stage.replaceChildren(card);
+  }
+
+  function showBlocked(url, reason) {
+    showCard(url, `${hostOf(url)} can't be shown inside a slide`, reason + " Only the site's owner can allow it.");
     log("blocked", `${url}: ${reason}`);
+  }
+
+  function showUnreachable(url) {
+    stage.querySelector(".loading")?.remove();
+    showCard(url, `${hostOf(url)} is still loading`, "", { retry: true, overlay: true });
+    log("timeout", url);
   }
 
   /* ---------------- config panel ---------------- */
@@ -375,6 +422,13 @@
       e.target.value = "";
     });
     addEventListener("resize", fit);
+    // Hover may not reach an unselected add-in in PowerPoint, so the bar also
+    // shows while the box has focus (it does after a click into it).
+    let focused = null;
+    setInterval(() => {
+      const now = document.hasFocus();
+      if (now !== focused) document.body.classList.toggle("focused", (focused = now));
+    }, 400);
     buildSamples();
   }
 

@@ -31,20 +31,24 @@ body {
 }
 
 /* ---------- stage ---------- */
-/* White like a browser tab: pages without a background expect it. */
-#stage { position: absolute; inset: 0; overflow: hidden; background: #fff; }
-body[data-view="edit"].has-bar #stage { bottom: var(--bar-h); }
+/* Nothing is painted until the content is ready, so the slide never shows
+   setup text or a white flash. The page then fades in on a white base,
+   like a browser tab: pages without a background expect it. */
+html, body:has(#stage iframe) { background: transparent; }
+#stage { position: absolute; inset: 0; overflow: hidden; }
 #stage iframe {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
   border: 0; display: block;
   transform-origin: 0 0;
-  background: transparent;
+  background: #fff;
+  opacity: 0; transition: opacity .35s ease-out;
 }
+#stage iframe.ready { opacity: 1; }
 .loading {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  color: #6b6b76; font-size: 12px;
+  color: #8a8a94; font-size: 12px;
 }
 
 /* ---------- site refused framing ---------- */
@@ -54,19 +58,38 @@ body[data-view="edit"].has-bar #stage { bottom: var(--bar-h); }
   gap: 8px; padding: 16px; text-align: center;
   background: var(--panel); color: var(--fg);
 }
+/* Still loading after 15 s: a strip along the bottom, since the page
+   underneath may be showing fine and only waiting on slow extras. */
+.blocked.late {
+  z-index: 1; inset: auto 0 0 0;
+  flex-direction: row; justify-content: flex-start; gap: 10px;
+  padding: 6px 8px 6px 12px; text-align: left; font-size: 12px;
+  border-top: 1px solid var(--line);
+}
+.blocked.late strong { flex: 1; font-size: 12px; font-weight: 600; }
+.blocked.late .why { display: none; }
+.blocked.late .actions { margin: 0; }
 .blocked strong { font-size: 15px; }
 .blocked .why { margin: 0; max-width: 46ch; color: var(--muted); font-size: 12px; }
 .blocked .actions { display: flex; gap: 8px; margin-top: 4px; }
 body[data-view="read"] .edit-only { display: none; }
 
-/* ---------- bar under the content (Normal view only) ---------- */
+/* ---------- bar (Normal view, while the pointer is over the box) ----------
+   PowerPoint saves a picture of the box for Presenter View, thumbnails, PDF
+   export and anyone without the add-in. The bar only appears on hover, so
+   that picture shows the content alone. */
 :root { --bar-h: 28px; }
 #bar {
-  position: absolute; left: 0; right: 0; bottom: 0; height: var(--bar-h);
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--bar-h); z-index: 5;
   display: flex; align-items: center; gap: 6px; padding: 0 4px 0 8px;
   background: var(--panel); border-top: 1px solid var(--line);
+  opacity: 0; pointer-events: none; transition: opacity .15s;
 }
+body:hover #bar, body.focused #bar, #bar:focus-within { opacity: 1; pointer-events: auto; }
 #bar[hidden], body[data-view="read"] #bar { display: none; }
+/* An empty box shows nothing in the slideshow. */
+body[data-view="read"] #config { display: none; }
+body[data-view="read"] { background: transparent; }
 #bar-label {
   flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   color: var(--muted); font-size: 12px;

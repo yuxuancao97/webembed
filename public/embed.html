@@ -41,10 +41,10 @@
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
 <body data-view="edit">
-  <!-- The embedded content. In Normal view it stops above the bar; in the slideshow it fills the box. -->
+  <!-- The embedded content. It fills the box in every view. -->
   <main id="stage" aria-live="polite"></main>
 
-  <!-- Normal view only: a bar under the content, so nothing covers the page. -->
+  <!-- Normal view only: appears along the bottom while the pointer is over the box. -->
   <div id="bar" hidden>
     <span id="bar-label"></span>
     <button type="button" id="btn-reload" title="Reload">↻</button>
