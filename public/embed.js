@@ -175,6 +175,7 @@
   function render() {
     clearTimers();
     stage.replaceChildren();
+    document.body.classList.toggle("has-bar", !!state);
     bar.hidden = !state;
     if (!state) return openConfig();
 
@@ -422,9 +423,9 @@
       e.target.value = "";
     });
     addEventListener("resize", fit);
-    // PowerPoint takes the pointer away from the add-in when a mouse button
-    // goes down on it, which ends :hover before the click lands. Keep the bar
-    // up (and clickable) for a moment after the pointer was last seen.
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+    // Keep the bar's contents showing for a moment after the pointer was
+    // last seen, so they don't flicker away while you reach for a button.
     let sleepTimer = 0;
     const wake = () => {
       clearTimeout(sleepTimer);

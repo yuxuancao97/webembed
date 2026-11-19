@@ -36,6 +36,9 @@ body {
    like a browser tab: pages without a background expect it. */
 html, body:has(#stage iframe) { background: transparent; }
 #stage { position: absolute; inset: 0; overflow: hidden; }
+/* In Normal view the bar gets its own strip under the page. Laid over the
+   page, PowerPoint doesn't deliver clicks to it. */
+body[data-view="edit"].has-bar #stage { bottom: var(--bar-h); }
 #stage iframe {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
@@ -74,18 +77,19 @@ html, body:has(#stage iframe) { background: transparent; }
 .blocked .actions { display: flex; gap: 8px; margin-top: 4px; }
 body[data-view="read"] .edit-only { display: none; }
 
-/* ---------- bar (Normal view, while the pointer is over the box) ----------
+/* ---------- bar (Normal view) ----------
    PowerPoint saves a picture of the box for Presenter View, thumbnails, PDF
-   export and anyone without the add-in. The bar only appears on hover, so
-   that picture shows the content alone. */
+   export and anyone without the add-in. The bar's contents only show while
+   the pointer is over the box or it has focus, to keep them out of that
+   picture as far as possible. It always takes clicks. */
 :root { --bar-h: 28px; }
 #bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: var(--bar-h); z-index: 5;
   display: flex; align-items: center; gap: 6px; padding: 0 4px 0 8px;
   background: var(--panel); border-top: 1px solid var(--line);
-  opacity: 0; pointer-events: none; transition: opacity .15s;
+  opacity: 0; transition: opacity .15s;
 }
-body:hover #bar, body.awake #bar, body.focused #bar, #bar:focus-within { opacity: 1; pointer-events: auto; }
+body:hover #bar, body.awake #bar, body.focused #bar, #bar:focus-within, #bar:hover { opacity: 1; }
 #bar[hidden], body[data-view="read"] #bar { display: none; }
 /* An empty box shows nothing in the slideshow. */
 body[data-view="read"] #config { display: none; }
