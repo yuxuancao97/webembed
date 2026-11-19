@@ -16,6 +16,10 @@
   // Office keeps add-in settings in the document and limits their size
   // (documented as 2 MB per add-in). Stay well under it.
   const MAX_INLINE_BYTES = 1_500_000;
+  // New embeds lay pages out at laptop width. With "Box width" a page is
+  // laid out at the box's size in pixels, which is much wider in the
+  // slideshow than in Normal view, so the audience could see another layout.
+  const DEFAULT_WIDTH = 1280;
 
   const SAMPLES = [
     { file: "samples/orbit.html", title: "Orbit", note: "Particle orbit loop, canvas" },
@@ -146,20 +150,24 @@
 
   /* ---------------- rendering ---------------- */
 
-  // Lay the page out at the chosen width, then scale it to the box.
+  // Lay the page out at the chosen width and the box's shape, then scale it
+  // into the stage. The shape comes from the whole box, so the page is laid
+  // out the same in Normal view and the slideshow. In Normal view the bar
+  // takes a strip, so the page is scaled to fit what's left and centred.
   function fit() {
     const f = stage.querySelector("iframe");
     if (!f || !state) return;
     const w = Number(state.width) || 0;
     const W = stage.clientWidth, H = stage.clientHeight;
-    if (!w || !W) {
+    if (!w || !W || !H) {
       f.style.width = f.style.height = f.style.transform = "";
       return;
     }
-    const s = W / w;
+    const h = Math.round(w * innerHeight / innerWidth);
+    const s = Math.min(W / w, H / h);
     f.style.width = w + "px";
-    f.style.height = H / s + "px";
-    f.style.transform = `scale(${s})`;
+    f.style.height = h + "px";
+    f.style.transform = `translate(${(W - w * s) / 2}px, ${(H - h * s) / 2}px) scale(${s})`;
   }
 
   // A page is shown once it fires "load" or after REVEAL_MS, whichever comes
@@ -300,7 +308,7 @@
 
   function openConfig() {
     $("#btn-cancel").hidden = !state;
-    widthSel.value = String(state?.width ?? 0);
+    widthSel.value = String(state?.width ?? DEFAULT_WIDTH);
     if (!widthSel.value) widthSel.value = "0"; // a width that isn't in the list
     if (state?.mode === "url") urlInput.value = state.url;
     if (state?.mode === "html") htmlInput.value = state.html;

@@ -85,7 +85,8 @@ On static hosting the "is this site embeddable?" check is off, because it needs 
 | Inline HTML can't load other local files | It runs from `srcdoc`, so inline your CSS and JS and use `data:` URIs or absolute https URLs for images and fonts. |
 | Inline HTML is sandboxed | `allow-scripts allow-popups` only, with no same-origin access. It can't touch the deck, cookies or the add-in. |
 | Embeds need the add-in host, and a connection, while presenting | Even inline HTML is rendered by the add-in page, and that page loads `office.js` from Microsoft's CDN. Copying an asset into the deck removes the dependency on the asset's own site, not on the add-in host. Offline presenting hasn't been tested. |
-| The box is capped at 1000×1000 pt on insert | PowerPoint's limit for the initial size. Drag to resize afterwards. Set **Page width** (for example Laptop, 1280 px) to lay a page out at desktop width and scale it down to the box. |
+| The box is capped at 1000×1000 pt on insert | PowerPoint's limit for the initial size. Drag to resize afterwards. |
+| **Page width** decides the layout | New embeds lay the page out at 1280 px (Laptop) and scale it to the box, so it looks the same while you edit and while you present. In Normal view it's a little smaller, with narrow gaps at the sides, to leave room for the strip underneath. **Box width** lays the page out at the box's own size instead, which is far wider in the slideshow than in Normal view, so a responsive site can switch to another layout in front of the audience. |
 
 ## Commands
 
